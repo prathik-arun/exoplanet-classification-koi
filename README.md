@@ -33,10 +33,11 @@ NASA's Kepler Space Telescope monitored ~200,000 stars for years, looking for th
    - IDs: `rowid`, `kepid`, `kepoi_name`, `kepler_name`
    - Measurement-uncertainty columns (`_err1` / `_err2`)
    
-   Missing values were imputed with the **median** of each feature (robust to outliers).
-3. **Model** — trained a binary classifier (CONFIRMED vs. FALSE POSITIVE), setting aside unresolved CANDIDATEs for final scoring.
-4. **Evaluate** — 5-fold stratified cross-validation, held-out test set, full metric suite.
-5. **Interpret** — permutation importance + a deliberate leakage demonstration.
+   Missing values were imputed with the **median** of each feature (robust to outliers). This left 66 physical and signal-quality features.
+3. **Engineer** — added 4 domain-aware derived features grounded in transit physics (see [Feature Engineering](#-feature-engineering) below), bringing the total to 70 features.
+4. **Model** — trained a binary classifier (CONFIRMED vs. FALSE POSITIVE), setting aside unresolved CANDIDATEs for final scoring.
+5. **Evaluate** — 5-fold stratified cross-validation, held-out test set, full metric suite.
+6. **Interpret** — permutation importance + a deliberate leakage demonstration.
 
 ## 🤖 Models
 
@@ -72,6 +73,17 @@ The leaky model looks better, but it isn't learning anything real — it's just 
 ## 🌌 Scoring the unresolved candidates
 
 As a final step, the trained model was applied to the ~1,978 CANDIDATE rows that NASA hasn't yet confirmed or ruled out, ranking them by predicted probability of being a real planet.
+
+## 🧪 Feature Engineering
+
+Beyond the raw columns, four domain-aware features were engineered from transit physics:
+
+- **`transit_snr_ratio`** = depth / duration — separates deep-short transits from shallow-long grazing events
+- **`period_duration_ratio`** = period / duration — real transits have a physically consistent timing relationship; binaries often don't
+- **`insol_habitable_proxy`** — flags whether a candidate's insolation falls in an Earth-like range (0.25–2)
+- **`prad_teq_interaction`** = radius × equilibrium temperature — flags cases where both are unusually large together, a signature of binary-star false positives
+
+Adding these gave a marginal CV F1 improvement (0.965 → ~0.966), which is itself informative: it confirms `koi_prad` alone already captures most of the separable signal, rather than the engineering being wasted effort.
 
 ## 🛠️ Tech stack
 
